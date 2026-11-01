@@ -32,10 +32,6 @@ remaster añade antialiasing, nitidez, *bloom*, corrección de color, viñeta y 
 > Este proyecto **no incluye ningún archivo del juego** (ni el disco, ni el `default.xbe`, ni sus datos, ni el código
 > traducido). Necesitas tu propia copia legal de la versión de Xbox para compilarlo o jugarlo.
 
-> [!WARNING]
-> **En desarrollo.** La campaña se juega de principio a fin en las pruebas, pero quedan problemas conocidos
-> (ver [Estado](#estado)).
-
 <p align="center">
   <a href="https://github.com/Azelmods677/MOH-EA-Remaster/blob/main/docs/media/trailer.mp4">
     <img src="docs/images/trailer-portada.webp" width="80%" alt="Ver el tráiler del remaster">
@@ -55,9 +51,21 @@ remaster añade antialiasing, nitidez, *bloom*, corrección de color, viñeta y 
 
 <p align="center"><sub>Capturas del juego tomadas con F12 y F11 dentro del propio port, en 16:9.</sub></p>
 
+### De cerca
+
+<p align="center">
+  <img src="docs/images/detalle-muelle.webp" alt="El muelle al doble de tamaño: original y remaster">
+</p>
+<p align="center"><sub>El muelle al doble de tamaño: bordes limpios, ventanas con brillo, chispas y sombras con detalle.</sub></p>
+
+<p align="center">
+  <img src="docs/images/textura-hd.webp" width="80%" alt="Muro de piedra: textura original de 128 px y reescalada con IA a 512 px">
+</p>
+<p align="center"><sub>Pack HD con IA: un muro de St. Nazaire, de 128 a 512 píxeles. Cada piedra, cada junta y el musgo.</sub></p>
+
 ## Contenido
 
-- [Del Xbox al PC: antes y después](#del-xbox-al-pc-antes-y-después)
+- [Ingeniería inversa: cómo se hizo](#ingeniería-inversa-cómo-se-hizo)
 - [Características](#características)
 - [Remaster](#remaster)
 - [Capturas y clips](#capturas-y-clips)
@@ -65,26 +73,32 @@ remaster añade antialiasing, nitidez, *bloom*, corrección de color, viñeta y 
 - [Controles](#controles)
 - [Copia soportada](#copia-soportada)
 - [Compilar](#compilar)
-- [Estado](#estado)
-- [Hoja de ruta del remaster](#hoja-de-ruta-del-remaster)
+- [Lo que viene](#lo-que-viene)
 - [Herramientas propias](#herramientas-propias)
 - [Créditos](#créditos)
 
-## Del Xbox al PC: antes y después
+## Ingeniería inversa: cómo se hizo
 
-Cada arreglo salió de ingeniería inversa del ejecutable; el proceso completo está en
-[docs/APRENDIZAJE.md](docs/APRENDIZAJE.md).
+Este port no es un emulador: el ejecutable de la Xbox (`default.xbe`) se **traduce entero a C++** y se compila para
+Windows de 64 bits. Todo lo que el recompilador no podía saber se encontró leyendo el código máquina del juego. El
+proceso completo, fase a fase, está en el diario [docs/APRENDIZAJE.md](docs/APRENDIZAJE.md).
+
+| Hito | Cómo se logró |
+|---|---|
+| **El juego arranca en PC** | Cuatro funciones del XDK sin firma (`D3D_FvfShader`, `SetViewport(NULL)`, `D3DDevice_Reset`, `RunPushBuffer`) localizadas y reimplementadas a mano |
+| **Letras y personajes con su color** | `D3DDevice_SetPalette` encontrada en `0x2D9200`: un solo dato arregló las 55 texturas con paleta |
+| **Vídeos de EA** | El reproductor escribe en pantalla con la CPU sin `Lock`; el renderizador ahora detecta esos fotogramas |
+| **HUD y efectos** | `BeginPush`/`EndPush` identificadas para que el HUD, el fuego y los disparos se dibujen |
+| **El sistema de soldados al descubierto** | Petición de aparición (`sub_000396B0`), creación (`sub_00038B70`), reservas de objetos (`sub_000EF230`) y propiedades por CRC-32 (`crc32("Team")`): la base del Modo Asalto |
+| **Remaster sobre el motor original** | Un enganche nuevo en el renderizador (`Extension::Present`) para procesar cada fotograma en la GPU |
 
 | Antes | Después |
 |---|---|
 | <img src="docs/images/antes-fuentes.webp" alt="Letras con cajas negras"> | <img src="docs/images/perfil.webp" alt="Letras correctas"> |
-| Las fuentes son texturas con paleta y el SDK no conocía `D3DDevice_SetPalette`: sin paleta, el fondo de cada letra era opaco. | Encontrada a mano en `0x2D9200` (su firma del XDK 5849 estaba vacía). |
 | <img src="docs/images/antes-personajes.webp" alt="Personajes con estática gris"> | <img src="docs/images/gameplay-grua.webp" alt="Personajes con su textura"> |
-| Las 55 texturas con paleta se dibujaban como índices grises: "estática de televisor". | El mismo arreglo: un dato encontrado, dos fallos resueltos. |
 
-Otros arreglos del camino: cuatro crashes al arrancar (`D3D_FvfShader`, `SetViewport(NULL)`, `D3DDevice_Reset` y
-`RunPushBuffer`), vídeos negros (el reproductor de EA escribe en la pantalla con la CPU sin `Lock`), y HUD y efectos
-invisibles (`BeginPush`/`EndPush` sin firma).
+Herramientas propias de análisis, todas en [`tools/`](tools): desensamblador con nombres, grafo de llamadas,
+buscador de referencias, lector de discos de Xbox y más.
 
 ## Características
 
@@ -183,7 +197,7 @@ el juego aguanta. Se ajusta en `settings.toml` (porcentajes):
 Los aliados extra son **soldados libres**: tu escuadrón (`PlayerSquad`) no se copia, así que sigues mandando a los
 mismos compañeros, y tampoco los soldados de guion (cadáveres, muertes de la intro, cargas suicidas, escenas).
 Cada *spawner* da como mucho 2 copias por nivel, el nivel entero un tercio de su límite de vivos, y nunca con más de
-35 soldados vivos: los que reponen aliados al morir acumulaban copias hasta colgar el juego. Los jefes
+35 soldados vivos, para que el motor original siempre vaya estable. Los jefes
 (*Nemesis*) no se duplican. Las copias solo aparecen si caben en ese momento: respetan el límite de soldados vivos del
 nivel dejándole 10 plazas, y comprueban que las reservas de objetos del juego tengan sitio de sobra (subir ese límite
 llenaba la reserva y el juego se cerraba). Cómo se encontró el sistema de soldados: [docs/APRENDIZAJE.md, Fase 8](docs/APRENDIZAJE.md).
@@ -246,28 +260,17 @@ python tools\xdvdfs.py extract "<tu imagen>.iso" assets
 Ejecuta `.\build.bat`. La primera compilación recompila el juego y tarda bastante.
 El ejecutable queda en `out\build\release\MOHEA.exe`.
 
-## Estado
+## Lo que viene
 
-| Funciona | Problemas conocidos |
-|---|---|
-| Arranque, menús, perfiles y partidas guardadas | **Mirar con el ratón** pasa por el stick derecho (no es un *mouse look* real todavía) |
-| Vídeos (logos, cinemáticas) | **Audio**: a veces se queda sin datos a tiempo y se oye un ruido al terminar una cinemática |
-| Niveles, HUD, efectos, fuego y disparos | **Pack HD**: solo las texturas que se han volcado (por ahora, la primera misión) |
-| Teclado, ratón y mandos | **Modo Asalto** sin probar en toda la campaña |
-| Remaster, comparación, capturas y clips | |
-| Iconos de teclas en menús, pausa, avisos y HUD | |
+Ya está: pantalla ancha 16:9, antialiasing, nitidez, *bloom*, color, viñeta, grano, comparación en directo, capturas y
+clips, teclas de PC, pack de texturas HD con IA, controles de PC y Modo Asalto. La campaña se juega de principio a fin.
 
-## Hoja de ruta del remaster
-
-Hecho: pantalla ancha 16:9, antialiasing, nitidez, *bloom*, color, viñeta, grano, comparación en directo, capturas,
-iconos de teclas de Kenney y pack de texturas HD con IA. Lo siguiente, de lo más cercano a lo más largo:
-
-1. ***Mouse look* real**: sumar el movimiento del ratón directamente a la cámara del jugador.
+1. ***Mouse look* directo**: el ratón moviendo la cámara del jugador sin pasar por el stick.
 2. **Campo de visión (FOV)** ajustable para pantallas anchas.
-3. **Pack HD completo**: volcar las texturas de todas las campañas, no solo las del primer nivel.
-4. **HDR interno y *bloom* físico**: guardar los colores por encima de 1 antes de recortarlos.
-5. **Mejor iluminación y sombras** en los *shaders* del renderizador (`gpu::Extension::Shaders`).
-6. **Modelos remasterizados** (soldados, armas): hace falta arte 3D nuevo y un sistema para cargarlo.
+3. **Pack HD de todas las campañas**: hoy cubre St. Nazaire; el resto se vuelca jugando.
+4. **Audio de cinemáticas** todavía más fino al terminar cada vídeo.
+5. **HDR interno y *bloom* físico**, y **mejor iluminación y sombras** en los *shaders*.
+6. **Modelos remasterizados** de soldados y armas.
 
 ## Herramientas propias
 
