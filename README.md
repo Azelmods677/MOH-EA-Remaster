@@ -329,8 +329,6 @@ En `settings.toml`: `mouse_sensitivity` (100 = normal) e `invert_mouse`.
 - FXAA (Timothy Lottes) y AMD FidelityFX CAS (MIT), base de las pasadas del remaster, escritas de nuevo para este port.
 - [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) (BSD-3), [Kenney Input Prompts](https://kenney.nl/assets/input-prompts)
   (CC0), [FFmpeg](https://ffmpeg.org/), [Capstone](https://www.capstone-engine.org/) y [Pillow](https://python-pillow.org/).
-- [Finest Hour Remastered](https://github.com/crazyriddler/FinestHourRemastered), inspiración de lo que puede llegar a
-  ser un remaster con este recompilador.
 
 <sub>*Medal of Honor* y *European Assault* son marcas de Electronic Arts. Este proyecto no está afiliado ni respaldado
 por Electronic Arts. Es un trabajo de aficionado con fines educativos y de preservación; necesitas tu propia copia del
