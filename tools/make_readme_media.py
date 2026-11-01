@@ -273,6 +273,78 @@ def trailer(clips, stills, titles, out_path):
     print(f"  {out_path}: {count / FPS:.1f} s, {os.path.getsize(out_path) // 1024} KB")
 
 
+
+def header(shots, path, w=1600, h=500, frames=48):
+    """Cabecera animada: el collage se desliza despacio, un brillo cruza el título y la placa REMASTER late."""
+    import math
+    base = collage(shots, int(w * 1.08), h).convert("RGB")
+    s = h / 500
+    title, sub = font(TITLE_FONT, int(92 * s)), font(TITLE_FONT, int(70 * s))
+    badge, text = font(TITLE_FONT, int(46 * s)), font(TEXT_FONT, int(30 * s))
+    x = int(60 * s)
+    # la máscara de las letras del título, para que el brillo solo se vea sobre ellas
+    mask = Image.new("L", (w, h), 0)
+    md = ImageDraw.Draw(mask)
+    md.text((x, int(70 * s)), "MEDAL OF HONOR", font=title, fill=255)
+    md.text((x, int(165 * s)), "EUROPEAN ASSAULT", font=sub, fill=255)
+    out = []
+    for i in range(frames):
+        k = i / frames
+        off = int((base.width - w) * (0.5 - 0.5 * math.cos(2 * math.pi * k)))
+        img = base.crop((off, 0, off + w, h)).convert("RGBA")
+        d = ImageDraw.Draw(img)
+        shadow_text(d, (x, int(70 * s)), "MEDAL OF HONOR", title, CREAM, int(4 * s))
+        shadow_text(d, (x, int(165 * s)), "EUROPEAN ASSAULT", sub, CREAM, int(4 * s))
+        # el brillo: una banda inclinada que cruza en la primera mitad del bucle
+        band = Image.new("L", (w, h), 0)
+        cx = -300 + k * 2 * (w * 0.6 + 600)
+        ImageDraw.Draw(band).polygon([(cx, 0), (cx + 90, 0), (cx - 60, h), (cx - 150, h)], fill=200)
+        shine = Image.new("RGBA", (w, h), (255, 250, 235, 0))
+        shine.putalpha(Image.composite(band, Image.new("L", (w, h), 0), mask))
+        img.alpha_composite(shine)
+        by = int(262 * s)
+        bw = d.textlength("REMASTER", font=badge)
+        glow = 0.5 + 0.5 * math.sin(2 * math.pi * k * 2)
+        red = tuple(int(c + (255 - c) * 0.25 * glow) for c in RED)
+        pad = int(4 * s * glow)
+        d.rectangle((x - pad, by - pad, x + bw + int(36 * s) + pad, by + int(62 * s) + pad), fill=red)
+        d.text((x + int(18 * s), by + int(4 * s)), "REMASTER", font=badge, fill=CREAM)
+        shadow_text(d, (x + bw + int(56 * s), by + int(12 * s)), "PORT NATIVO PARA PC", text, CREAM, int(2 * s))
+        shadow_text(d, (x, int(350 * s)), "Xbox original  →  Windows x64  ·  Direct3D 12  ·  sin emulador",
+                    font(TEXT_FONT, int(24 * s)), (215, 205, 185), int(2 * s))
+        shadow_text(d, (w - int(330 * s), h - int(42 * s)), "por AzelModsX677", font(TEXT_FONT, int(24 * s)), AMBER,
+                    int(2 * s))
+        out.append(img.convert("RGB"))
+    out[0].save(path, save_all=True, append_images=out[1:], duration=80, loop=0, quality=82, method=4)
+    print(f"  {path}: {len(out)} imágenes, {os.path.getsize(path) // 1024} KB")
+
+
+def slider(original, remaster, path, w=1280, frames=56):
+    """La misma escena: una línea va y viene descubriendo el remaster sobre el original."""
+    import math
+    a = Image.open(original).convert("RGB")
+    h = round(a.height * w / a.width)
+    a = a.resize((w, h), Image.LANCZOS)
+    b = Image.open(remaster).convert("RGB").resize((w, h), Image.LANCZOS)
+    lf = font(TITLE_FONT, 40)
+    out = []
+    for i in range(frames):
+        k = 0.5 - 0.5 * math.cos(2 * math.pi * i / frames)
+        x = int(w * (0.12 + 0.76 * k))
+        img = a.copy()
+        img.paste(b.crop((x, 0, w, h)), (x, 0))
+        d = ImageDraw.Draw(img)
+        d.rectangle((x - 2, 0, x + 2, h), fill=CREAM)
+        d.ellipse((x - 22, h // 2 - 22, x + 22, h // 2 + 22), fill=RED, outline=CREAM, width=3)
+        d.polygon([(x - 6, h // 2 - 9), (x - 6, h // 2 + 9), (x - 15, h // 2)], fill=CREAM)
+        d.polygon([(x + 6, h // 2 - 9), (x + 6, h // 2 + 9), (x + 15, h // 2)], fill=CREAM)
+        shadow_text(d, (24, 18), "ORIGINAL", lf, CREAM, 2)
+        shadow_text(d, (w - 24 - d.textlength("REMASTER", font=lf), 18), "REMASTER", lf, AMBER, 2)
+        out.append(img)
+    out[0].save(path, save_all=True, append_images=out[1:], duration=70, loop=0, quality=85, method=4)
+    print(f"  {path}: {len(out)} imágenes, {os.path.getsize(path) // 1024} KB")
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -289,6 +361,12 @@ def main():
     cl.add_argument("folder")
     cl.add_argument("name")
     cl.add_argument("--width", type=int, default=640)
+    hd = sub.add_parser("header")
+    hd.add_argument("shots", nargs="+")
+    sl = sub.add_parser("slider")
+    sl.add_argument("original")
+    sl.add_argument("remaster")
+    sl.add_argument("name")
     tr = sub.add_parser("trailer")
     tr.add_argument("--clips", nargs="*", default=[])
     tr.add_argument("--stills", nargs="*", default=[])
@@ -329,6 +407,10 @@ def main():
         path = os.path.join(IMAGES, args.name + ".gif")
         frames[0].save(path, save_all=True, append_images=frames[1:], duration=67, loop=0, optimize=True)
         print(f"  {path}: {len(frames)} imágenes, {os.path.getsize(path) // 1024} KB")
+    elif args.cmd == "header":
+        header([Image.open(x).convert("RGB") for x in args.shots], os.path.join(IMAGES, "header.webp"))
+    elif args.cmd == "slider":
+        slider(args.original, args.remaster, os.path.join(IMAGES, args.name + ".webp"))
     elif args.cmd == "trailer":
         trailer(args.clips, args.stills, args.titles, args.out)
 
