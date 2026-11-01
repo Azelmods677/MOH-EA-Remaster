@@ -35,3 +35,7 @@ screenshots/
 
 # Local temporary folder
 .local
+
+# notas personales del autor, fuera del repositorio
+docs/APRENDIZAJE.md
+NOTAS_PROYECTO.md

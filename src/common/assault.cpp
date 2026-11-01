@@ -1,13 +1,12 @@
 // "Modo Asalto — modded by AzelModsX677": more allies and enemies in the levels. The decisions live here; the hooks
-// that spawn the copies are in src/game/hooks.cpp. Found by reverse engineering (docs/APRENDIZAJE.md, Fase 8):
+// that spawn the copies are in src/game/hooks.cpp. Found by reverse engineering:
 //   sub_00039330  at a level's start: the maximum of soldiers alive comes from the level's settings, into 0x3A0330
 //   sub_000396B0  spawn request (spawner, placement, class): spawns at once while fewer than the maximum are alive,
 //                 else waits in a queue of 15
 //   0x3A04F0      the soldiers' pool: 75 entries, an empty one is written through a null pointer
-//   sub_000EF230  the game object factories, which run dry before that pool: the level's maximum stays (Fase 11)
+//   sub_000EF230  the game object factories, which run dry before that pool: the level's maximum stays
 // Copies are budgeted per level and per spawner, under kAssaultAliveCap alive: a refilling spawner (St. Nazaire's
-// AllyRight1 spawned 26 times in 8 minutes) piled 34 copies into one squad and the game crashed making a soldier
-// (Fase 12)
+// AllyRight1 spawned 26 times in 8 minutes) piled 34 copies into one squad and the game crashed making a soldier.
 #include <algorithm>
 #include <cctype>
 #include <cstring>

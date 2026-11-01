@@ -16,8 +16,7 @@
   <a href="#capturas-y-clips"><b>Capturas</b></a> ·
   <a href="#modo-asalto--modded-by-azelmodsx677"><b>Modo Asalto</b></a> ·
   <a href="#controles"><b>Controles</b></a> ·
-  <a href="#compilar"><b>Compilar</b></a> ·
-  <a href="docs/APRENDIZAJE.md"><b>Diario</b></a>
+  <a href="#compilar"><b>Compilar</b></a>
 </p>
 
 Port nativo no oficial para PC de la versión de **Xbox original** de *Medal of Honor: European Assault* (2005), con un
@@ -80,8 +79,7 @@ remaster añade antialiasing, nitidez, *bloom*, corrección de color, viñeta y 
 ## Ingeniería inversa: cómo se hizo
 
 Este port no es un emulador: el ejecutable de la Xbox (`default.xbe`) se **traduce entero a C++** y se compila para
-Windows de 64 bits. Todo lo que el recompilador no podía saber se encontró leyendo el código máquina del juego. El
-proceso completo, fase a fase, está en el diario [docs/APRENDIZAJE.md](docs/APRENDIZAJE.md).
+Windows de 64 bits. Todo lo que el recompilador no podía saber se encontró leyendo el código máquina del juego.
 
 | Hito | Cómo se logró |
 |---|---|
@@ -200,7 +198,7 @@ Cada *spawner* da como mucho 2 copias por nivel, el nivel entero un tercio de su
 35 soldados vivos, para que el motor original siempre vaya estable. Los jefes
 (*Nemesis*) no se duplican. Las copias solo aparecen si caben en ese momento: respetan el límite de soldados vivos del
 nivel dejándole 10 plazas, y comprueban que las reservas de objetos del juego tengan sitio de sobra (subir ese límite
-llenaba la reserva y el juego se cerraba). Cómo se encontró el sistema de soldados: [docs/APRENDIZAJE.md, Fase 8](docs/APRENDIZAJE.md).
+llenaba la reserva y el juego se cerraba).
 
 ## Controles
 
@@ -289,7 +287,7 @@ clips, teclas de PC, pack de texturas HD con IA, controles de PC y Modo Asalto. 
 
 - **AzelModsX677**: port, ingeniería inversa, controles de PC, remaster y Modo Asalto.
 - [Xbox XBE Recomp](https://github.com/TGP482/XboxXBERecomp) (MIT), el recompilador y el runtime en los que se basa este
-  port; incluye arreglos propios descritos en [NOTAS_PROYECTO.md](NOTAS_PROYECTO.md).
+  port; incluye arreglos propios en `sdk/` (paletas, `SetViewport(NULL)`, vídeos sin `Lock` y el enganche del remaster).
 - FXAA, de Timothy Lottes (NVIDIA), y la nitidez adaptativa de AMD FidelityFX CAS (MIT), como base de las pasadas del
   remaster, escritas de nuevo para este port.
 - [Finest Hour Remastered](https://github.com/crazyriddler/FinestHourRemastered), otro port con el mismo recompilador, como
