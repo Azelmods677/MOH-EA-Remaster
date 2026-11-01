@@ -1,0 +1,37 @@
+# build
+/out/
+/build/
+*.zip
+*.pdb
+*.exe
+*.obj
+*.o
+
+# recompiled code, derived from the game
+/generated/
+
+# user's own game files
+/assets/
+*.iso
+*.xiso
+*.xbe
+*.7z
+
+# python
+__pycache__/
+
+# runtime files
+settings.toml
+/logs/
+/hdd/
+/CrashDumps/
+screenshots/
+
+# editors
+.vs/
+.vscode/
+.idea/
+.snapshots/
+
+# Local temporary folder
+.local
