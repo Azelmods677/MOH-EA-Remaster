@@ -5,10 +5,15 @@
 //                 else waits in a queue of 15
 //   0x3A04F0      the soldiers' pool: 75 entries, an empty one is written through a null pointer
 //   sub_000EF230  the game object factories, which run dry before that pool: the level's maximum stays (Fase 11)
+// Copies are budgeted per level and per spawner, under kAssaultAliveCap alive: a refilling spawner (St. Nazaire's
+// AllyRight1 spawned 26 times in 8 minutes) piled 34 copies into one squad and the game crashed making a soldier
+// (Fase 12)
+#include <algorithm>
 #include <cctype>
 #include <cstring>
 #include <random>
 #include <string>
+#include <unordered_map>
 
 #include "assault.h"
 #include "core/log.h"
@@ -25,6 +30,10 @@ namespace {
 // (St. Nazaire: DeadBody1, IntroDeath1, SuicideAlly1, BlowUpGag, QuartetICS1). A copy would repeat the scene.
 constexpr const char* kScripted[] = {"dead", "death", "body", "suicide", "gag", "intro", "ics", "cine", "outro"};
 
+// the level's copies, on the game's thread (spawns and the level's start both run there)
+std::unordered_map<uint32_t, int> g_per_spawner;
+int g_level_budget = 0;
+
 bool Contains(const char* text, const char* word) {
     std::string lower;
     for (size_t i = 0; i < 128 && text && text[i]; i++) lower += char(std::tolower(static_cast<unsigned char>(text[i])));
@@ -40,6 +49,24 @@ int Copies(uint32_t percent) {
 }
 
 }  // namespace
+
+void AssaultLevelStart(uint32_t level_max) {
+    g_per_spawner.clear();
+    g_level_budget = int(level_max / 3);
+    LOGI("assault: level start, %u soldiers alive at most, %d copies at most", level_max, g_level_budget);
+}
+
+int AssaultAllowed(uint32_t spawner, int wanted) {
+    auto it = g_per_spawner.find(spawner);
+    int made = it == g_per_spawner.end() ? 0 : it->second;
+    return std::max(0, std::min({wanted, kAssaultPerSpawner - made, g_level_budget}));
+}
+
+void AssaultMade(uint32_t spawner, int made) {
+    if (made <= 0) return;
+    g_per_spawner[spawner] += made;
+    g_level_budget -= made;
+}
 
 int AssaultCopies(Side side, const char* cls, const char* squad, const char* archetype) {
     if (!g_assault || side == Side::Unknown) return 0;

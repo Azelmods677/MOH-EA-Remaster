@@ -95,6 +95,14 @@ std::string PropertyText(X86Context& ctx, uint8_t* base, uint32_t definition, co
 
 }  // namespace
 
+// At a level's start: the soldiers' pools, then the level's maximum of soldiers alive from its settings
+// ([0x3C2E44] + 0xE4 into 0x3A0330). The maximum stays; Modo Asalto starts the level's budget of copies from it.
+X86_EXTERN_FUNC(__imp__sub_00039330);
+X86_FUNC(sub_00039330) {
+    __imp__sub_00039330(ctx, base);
+    mohea::AssaultLevelStart(Read(base, kSoldiersMax));
+}
+
 // The object allocator: which factories a soldier's making takes from
 X86_EXTERN_FUNC(__imp__sub_000EF230);
 X86_FUNC(sub_000EF230) {
@@ -107,8 +115,9 @@ X86_FUNC(sub_000EF230) {
 // maximum are alive, else queues the request (sub_00037510). Modo Asalto asks again for the soldiers of the two
 // spawner callers, only while one fits now: the game's queue holds 15 and stays for the level's own soldiers. The
 // level's own maximum stays (raising it ran the object factories dry: a crash at the 45th soldier), and the copies
-// leave kAssaultReserve of it to the level. The copies don't go through the callers, so the spawners' own counts and
-// limits are untouched, and they are free soldiers: the player's squad and scripted soldiers are never copied.
+// leave kAssaultReserve of it, and of kAssaultAliveCap, to the level, within the level's and the spawner's budget. The
+// copies don't go through the callers, so the spawners' own counts and limits are untouched, and they are free
+// soldiers: the player's squad and scripted soldiers are never copied.
 X86_EXTERN_FUNC(__imp__sub_000396B0);
 X86_FUNC(sub_000396B0) {
     static thread_local bool copying = false;
@@ -139,20 +148,22 @@ X86_FUNC(sub_000396B0) {
         archetype = PropertyText(ctx, base, definition, prefix + "Archetype_Resource");
     }
     ctx.ecx = ecx;
-    int copies = mohea::AssaultCopies(side, name, squad.c_str(), archetype.c_str());
+    int copies = mohea::AssaultAllowed(spawner, mohea::AssaultCopies(side, name, squad.c_str(), archetype.c_str()));
     LOG_FIRST(96, "assault: spawn %s from %08X side %d squad '%s' archetype '%s' alive %u of %u, %d more", name, back,
               int(side), squad.c_str(), archetype.c_str(), Read(base, kSoldiersAlive), Read(base, kSoldiersMax),
               copies);
+    // under the level's maximum and the cap, less the reserve, and with room in every factory a soldier takes from
+    uint32_t limit = std::min(Read(base, kSoldiersMax), mohea::kAssaultAliveCap);
+    int made = 0;
     copying = true;
-    for (int i = 0; i < copies; i++) {
-        if (Read(base, kSoldiersAlive) + mohea::kAssaultReserve >= Read(base, kSoldiersMax) ||
-            !FactoriesHaveRoom(base)) {
-            LOG_FIRST(16, "assault: no room for more copies, alive %u of %u", Read(base, kSoldiersAlive),
-                      Read(base, kSoldiersMax));
+    for (; made < copies; made++) {
+        if (Read(base, kSoldiersAlive) + mohea::kAssaultReserve >= limit || !FactoriesHaveRoom(base)) {
+            LOG_FIRST(16, "assault: no room for more copies, alive %u of %u", Read(base, kSoldiersAlive), limit);
             break;
         }
         kernel::CallGuest(ctx, kSpawnRequest, {spawner, placement, cls});
     }
     copying = false;
+    mohea::AssaultMade(spawner, made);
     ctx.eax = result;
 }

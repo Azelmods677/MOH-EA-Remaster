@@ -2,6 +2,24 @@
 
 # Medal of Honor: European Assault Remaster — Port nativo para PC
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?logo=windows&logoColor=white" alt="Windows 10 | 11">
+  <img src="https://img.shields.io/badge/Direct3D-12-2C2C2C" alt="Direct3D 12">
+  <img src="https://img.shields.io/badge/C%2B%2B-20-00599C?logo=cplusplus&logoColor=white" alt="C++20">
+  <img src="https://img.shields.io/badge/Xbox%20original-port%20nativo-107C10?logo=xbox&logoColor=white" alt="Xbox original">
+  <img src="https://img.shields.io/badge/remaster-FXAA%20%C2%B7%20bloom%20%C2%B7%20HD-B22222" alt="Remaster">
+  <img src="https://img.shields.io/badge/licencia-MIT-yellow" alt="MIT">
+</p>
+
+<p align="center">
+  <a href="#remaster"><b>Remaster</b></a> ·
+  <a href="#capturas-y-clips"><b>Capturas</b></a> ·
+  <a href="#modo-asalto--modded-by-azelmodsx677"><b>Modo Asalto</b></a> ·
+  <a href="#controles"><b>Controles</b></a> ·
+  <a href="#compilar"><b>Compilar</b></a> ·
+  <a href="docs/APRENDIZAJE.md"><b>Diario</b></a>
+</p>
+
 Port nativo no oficial para PC de la versión de **Xbox original** de *Medal of Honor: European Assault* (2005), con un
 **remaster visual** propio, creado por **AzelModsX677** como proyecto de ingeniería inversa.
 
@@ -157,7 +175,9 @@ el juego aguanta. Se ajusta en `settings.toml` (porcentajes):
 | `extra_allies` | `150` | aliados extra por cada aliado, en todos los niveles (150 = uno o dos más por cada uno) |
 
 Los aliados extra son **soldados libres**: tu escuadrón (`PlayerSquad`) no se copia, así que sigues mandando a los
-mismos compañeros, y tampoco los soldados de guion (cadáveres, muertes de la intro, cargas suicidas, escenas). Los jefes
+mismos compañeros, y tampoco los soldados de guion (cadáveres, muertes de la intro, cargas suicidas, escenas).
+Cada *spawner* da como mucho 2 copias por nivel, el nivel entero un tercio de su límite de vivos, y nunca con más de
+35 soldados vivos: los que reponen aliados al morir acumulaban copias hasta colgar el juego. Los jefes
 (*Nemesis*) no se duplican. Las copias solo aparecen si caben en ese momento: respetan el límite de soldados vivos del
 nivel dejándole 10 plazas, y comprueban que las reservas de objetos del juego tengan sitio de sobra (subir ese límite
 llenaba la reserva y el juego se cerraba). Cómo se encontró el sistema de soldados: [docs/APRENDIZAJE.md, Fase 8](docs/APRENDIZAJE.md).
