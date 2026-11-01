@@ -37,6 +37,12 @@ remaster añade antialiasing, nitidez, *bloom*, corrección de color, viñeta y 
 > (ver [Estado](#estado)).
 
 <p align="center">
+  <a href="https://github.com/Azelmods677/MOH-EA-Remaster/blob/main/docs/media/trailer.mp4">
+    <img src="docs/images/trailer-portada.webp" width="80%" alt="Ver el tráiler del remaster">
+  </a>
+</p>
+
+<p align="center">
   <img src="docs/images/original-vs-remaster.webp" alt="St. Nazaire: el original de Xbox y el remaster, la misma escena">
 </p>
 
@@ -161,7 +167,7 @@ Sin `--kenney`, la herramienta dibuja unas teclas propias.
 | **F11** | un clip: imágenes PNG a 15 por segundo hasta pulsar F11 otra vez (8 segundos como mucho) |
 
 Las imágenes del README salen de ahí con `python tools\make_readme_media.py`: banner, comparaciones, GIF y un tráiler
-MP4 1080p hecho con FFmpeg.
+MP4 1080p hecho con FFmpeg, con banda sonora propia generada en el momento (nada de música del juego).
 
 ## Modo Asalto — modded by AzelModsX677
 

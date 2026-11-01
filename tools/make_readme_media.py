@@ -165,6 +165,35 @@ def card(lines):
     return img
 
 
+SERIF_FONT = r"C:\Windows\Fonts\georgiab.ttf"
+
+
+def cinema(img):
+    """Bandas negras de cine (2,39:1) sobre un fotograma 16:9."""
+    img = img.copy()
+    bar = round((VIDEO_H - VIDEO_W / 2.39) / 2)
+    draw = ImageDraw.Draw(img)
+    draw.rectangle((0, 0, VIDEO_W, bar), fill=(0, 0, 0))
+    draw.rectangle((0, VIDEO_H - bar, VIDEO_W, VIDEO_H), fill=(0, 0, 0))
+    return img
+
+
+def soundtrack(path, seconds, hits):
+    """Banda sonora propia, hecha aquí con FFmpeg (sin música del juego): un zumbido grave que respira, viento y un
+    golpe de tambor en cada corte."""
+    import subprocess
+    boom = "+".join(f"gte(t,{h:.2f})*exp(-3.2*max(t-{h:.2f},0))*(0.9*sin(2*PI*46*(t-{h:.2f}))"
+                    f"+0.35*sin(2*PI*92*(t-{h:.2f})))" for h in hits) or "0"
+    graph = (f"sine=f=55:d={seconds}[a];sine=f=82.41:d={seconds}[b];sine=f=110:d={seconds},volume=0.35[c];"
+             f"[a][b][c]amix=inputs=3,tremolo=f=0.2:d=0.5[drone];"
+             f"anoisesrc=color=brown:amplitude=0.6:d={seconds},lowpass=f=350[wind];"
+             f"aevalsrc='{boom}':d={seconds}:s=44100[hits];"
+             f"[drone][wind][hits]amix=inputs=3:weights='1 0.6 2.2',afade=t=in:d=2,"
+             f"afade=t=out:st={max(seconds - 3, 0):.2f}:d=3,loudnorm=I=-16[out]")
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-filter_complex", graph, "-map", "[out]", "-ar", "44100",
+                    path], check=True)
+
+
 def trailer(clips, stills, titles, out_path):
     import shutil
     import subprocess
@@ -185,20 +214,38 @@ def trailer(clips, stills, titles, out_path):
             k = min(1.0, t / fade_in if fade_in else 1.0, (seconds - t) / fade_out if fade_out else 1.0)
             emit(fade(img, k) if k < 1 else img)
 
+    hits = []  # los cortes, para los golpes de la música
+
+    def cut():
+        hits.append(count / FPS)
+
+    # como la intro del juego: negro, "EUROPA, 1942" en letra de época, y el título
+    hold(Image.new("RGB", (VIDEO_W, VIDEO_H)), 1.0, 0, 0)
+    cut()
+    era = Image.new("RGB", (VIDEO_W, VIDEO_H), (6, 5, 4))
+    d = ImageDraw.Draw(era)
+    for text, y, size in (("EUROPA", 420, 110), ("1942", 560, 110)):
+        f = font(SERIF_FONT, size)
+        d.text(((VIDEO_W - d.textlength(text, font=f)) / 2, y), text, font=f, fill=(225, 220, 210))
+    hold(era, 3.5, 1.2, 1.0)
+    cut()
     banner_img = Image.open(os.path.join(IMAGES, "banner.png")).convert("RGB")
     hold(fit(banner_img, VIDEO_W, VIDEO_H), 4.0, 0.8, 0.6)
+    cut()
     hold(card([("PORT NATIVO PARA PC", 96, CREAM), ("XBOX ORIGINAL  →  WINDOWS x64  ·  DIRECT3D 12", 48, AMBER),
                ("SIN EMULADOR", 48, AMBER)]), 3.0)
     for i, folder in enumerate(clips):
+        cut()
         title = titles[i] if i < len(titles) else ""
         names = sorted(n for n in os.listdir(folder) if n.lower().endswith(".png"))
         for j, n in enumerate(names):
-            shot = fit(Image.open(os.path.join(folder, n)).convert("RGB"), VIDEO_W, VIDEO_H)
+            shot = cinema(fit(Image.open(os.path.join(folder, n)).convert("RGB"), VIDEO_W, VIDEO_H))
             img = caption(shot, title) if title else shot
             k = min(1.0, (j + 1) / 6, (len(names) - j) / 6)
             for _ in range(FPS // 15):  # los clips van a 15 por segundo
                 emit(fade(img, k) if k < 1 else img)
     for path in stills:
+        cut()
         still = Image.open(path).convert("RGB")
         base = fit(still, VIDEO_W, VIDEO_H)
         n = round(3.5 * FPS)
@@ -209,14 +256,18 @@ def trailer(clips, stills, titles, out_path):
             img = base.crop((round(x), round(y), round(x + cw), round(y + ch))).resize((VIDEO_W, VIDEO_H), Image.LANCZOS)
             k = min(1.0, i / 10, (n - i) / 10)
             emit(fade(img, k) if k < 1 else img)
+    cut()
     hold(card([("MEDAL OF HONOR: EUROPEAN ASSAULT", 84, CREAM), ("REMASTER", 120, RED),
-               ("por AzelModsX677", 52, AMBER)]), 4.0, 0.6, 1.0)
+               ("por AzelModsX677", 52, AMBER)]), 4.5, 0.6, 1.5)
 
     try:
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        music = os.path.join(work, "music.wav")
+        soundtrack(music, count / FPS, hits)
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(FPS), "-i",
-                        os.path.join(work, "%05d.png"), "-c:v", "libx264", "-preset", "slow", "-crf", "18",
-                        "-pix_fmt", "yuv420p", "-movflags", "+faststart", out_path], check=True)
+                        os.path.join(work, "%05d.png"), "-i", music, "-c:v", "libx264", "-preset", "slow", "-crf", "20",
+                        "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart",
+                        out_path], check=True)
     finally:
         shutil.rmtree(work, ignore_errors=True)
     print(f"  {out_path}: {count / FPS:.1f} s, {os.path.getsize(out_path) // 1024} KB")
